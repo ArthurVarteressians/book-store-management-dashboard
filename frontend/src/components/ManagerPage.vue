@@ -1,205 +1,207 @@
 <!-- eslint-disable @typescript-eslint/no-unused-vars -->
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useToast } from 'vue-toastification'
-import LoadingOverlay from '@/components/LoadingOverlay.vue'
-import SkeletonLoader from '@/components/SkeletonLoader.vue';
+  import { ref, onMounted } from 'vue';
+  import { useToast } from 'vue-toastification';
+  import LoadingOverlay from '@/components/LoadingOverlay.vue';
+  import SkeletonLoader from '@/components/SkeletonLoader.vue';
 
-const toast = useToast()
+  const toast = useToast();
 
-// Define Book interface
-interface Book {
-  _id: string
-  title: string
-  author: string
-  price: number
-  description: string
-  category: string
-}
-
-// Pagination and book data
-const books = ref<Book[]>([])
-const currentPage = ref(1)
-const totalPages = ref(1)
-const limit = 6
-
-// Sorting states
-const isLoading = ref(true) // New loading state for skeleton
-const isDescending = ref(true) // Default sort to descending
-
-// State for popups and book actions
-const editingBook = ref<Book | null>(null)
-const showEditPopup = ref(false)
-const showAddPopup = ref(false)
-const showDeleteConfirmation = ref(false)
-const showLoadingOverlay = ref(false) // State for showing loading overlay
-const selectedBookToDelete = ref<Book | null>(null)
-
-// State for adding a new book
-const newBook = ref<Book>({
-  title: '',
-  author: '',
-  price: 0,
-  description: '',
-  category: '',
-  _id: ''
-})
-
-// Overlay message and icon type
-const overlayMessage = ref('')
-const overlayIconType = ref<'success' | 'warning' | 'error'>('success')
-
-// Fetch books with sorting based on isDescending
-const fetchBooks = async () => {
-  try {
-    isLoading.value = true // Show skeleton while fetching data
-    const sort = isDescending.value ? 'desc' : 'asc'
-    const response = await fetch(
-      `http://localhost:3000/books?page=${currentPage.value}&limit=${limit}&sort=${sort}`,
-    )
-    const data = await response.json()
-    books.value = data.books
-    totalPages.value = data.totalPages
-  } catch (error) {
-    toast.error('Failed to fetch books.')
-  } finally {
-    isLoading.value = false // Hide skeleton once data is fetched
+  // Define Book interface
+  interface Book {
+    _id: string;
+    title: string;
+    author: string;
+    price: number;
+    description: string;
+    category: string;
   }
-}
 
-// Toggle sorting direction and fetch sorted books
-const toggleSorting = () => {
-  isDescending.value = !isDescending.value
-  fetchBooks()
-}
+  // Pagination and book data
+  const books = ref<Book[]>([]);
+  const currentPage = ref(1);
+  const totalPages = ref(1);
+  const limit = 6;
 
-// Function to handle adding a new book
-const addBook = async () => {
-  try {
-    const { _id, ...bookData } = newBook.value;
+  // Sorting states
+  const isLoading = ref(true); // New loading state for skeleton
+  const isDescending = ref(true); // Default sort to descending
 
-    const response = await fetch('http://localhost:3000/books', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bookData),
-    });
-    if (response.ok) {
-      overlayMessage.value = 'Book added successfully!';
-      overlayIconType.value = 'success';
-      showLoadingOverlay.value = true; 
-      fetchBooks(); // Refresh book list
-      showAddPopup.value = false;
-      
-      // Reset newBook fields for the next entry
-      newBook.value = {
-        _id: '',
-        title: '',
-        author: '',
-        price: 0,
-        description: '',
-        category: '',
-      };
+  // State for popups and book actions
+  const editingBook = ref<Book | null>(null);
+  const showEditPopup = ref(false);
+  const showAddPopup = ref(false);
+  const showDeleteConfirmation = ref(false);
+  const showLoadingOverlay = ref(false); // State for showing loading overlay
+  const selectedBookToDelete = ref<Book | null>(null);
 
-      setTimeout(() => (showLoadingOverlay.value = false), 2000); 
-    } else {
-      throw new Error();
+  // State for adding a new book
+  const newBook = ref<Book>({
+    title: '',
+    author: '',
+    price: 0,
+    description: '',
+    category: '',
+    _id: '',
+  });
+
+  // Overlay message and icon type
+  const overlayMessage = ref('');
+  const overlayIconType = ref<'success' | 'warning' | 'error'>('success');
+
+  // Fetch books with sorting based on isDescending
+  const fetchBooks = async () => {
+    try {
+      isLoading.value = true; // Show skeleton while fetching data
+      const sort = isDescending.value ? 'desc' : 'asc';
+      const response = await fetch(
+        `http://localhost:3000/books?page=${currentPage.value}&limit=${limit}&sort=${sort}`,
+      );
+      const data = await response.json();
+      books.value = data.books;
+      totalPages.value = data.totalPages;
+    } catch (error) {
+      toast.error('Failed to fetch books.');
+    } finally {
+      isLoading.value = false; // Hide skeleton once data is fetched
     }
-  } catch (error) {
-    toast.error('Failed to add book');
-  }
-};
+  };
 
-// Function to trigger edit popup
-const editBook = (book: Book) => {
-  editingBook.value = { ...book }
-  showEditPopup.value = true
-}
+  // Toggle sorting direction and fetch sorted books
+  const toggleSorting = () => {
+    isDescending.value = !isDescending.value;
+    fetchBooks();
+  };
 
-// Function to save book changes
-const saveBookChanges = async () => {
-  if (!editingBook.value) return
+  // Function to handle adding a new book
+  const addBook = async () => {
+    try {
+      const { _id, ...bookData } = newBook.value;
 
-  try {
-    const response = await fetch(
-      `http://localhost:3000/books/${editingBook.value._id}`,
-      {
-        method: 'PUT',
+      const response = await fetch('http://localhost:3000/books', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingBook.value),
-      },
-    )
-    if (response.ok) {
-      overlayMessage.value = 'Book updated successfully!'
-      overlayIconType.value = 'success'
-      showLoadingOverlay.value = true
-      fetchBooks()
-      showEditPopup.value = false
-      editingBook.value = null
-      setTimeout(() => (showLoadingOverlay.value = false), 2000) 
-    } else {
-      throw new Error()
+        body: JSON.stringify(bookData),
+      });
+      if (response.ok) {
+        overlayMessage.value = 'Book added successfully!';
+        overlayIconType.value = 'success';
+        showLoadingOverlay.value = true;
+        fetchBooks(); // Refresh book list
+        showAddPopup.value = false;
+
+        // Reset newBook fields for the next entry
+        newBook.value = {
+          _id: '',
+          title: '',
+          author: '',
+          price: 0,
+          description: '',
+          category: '',
+        };
+
+        setTimeout(() => (showLoadingOverlay.value = false), 2000);
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      toast.error('Failed to add book');
     }
-  } catch (error) {
-    toast.error('Failed to update the book.')
-  }
-}
+  };
 
-// Function to confirm deletion
-const confirmDeleteBook = (book: Book) => {
-  selectedBookToDelete.value = book
-  showDeleteConfirmation.value = true
-}
+  // Function to trigger edit popup
+  const editBook = (book: Book) => {
+    editingBook.value = { ...book };
+    showEditPopup.value = true;
+  };
 
-// Function to delete a book
-const deleteBook = async () => {
-  if (!selectedBookToDelete.value) return
+  // Function to save book changes
+  const saveBookChanges = async () => {
+    if (!editingBook.value) return;
 
-  try {
-    const response = await fetch(
-      `http://localhost:3000/books/${selectedBookToDelete.value._id}`,
-      {
-        method: 'DELETE',
-      },
-    )
-    if (response.ok) {
-      overlayMessage.value = 'Book deleted successfully!'
-      overlayIconType.value = 'error'
-      showLoadingOverlay.value = true
-      fetchBooks()
-      showDeleteConfirmation.value = false
-      selectedBookToDelete.value = null
-      setTimeout(() => (showLoadingOverlay.value = false), 2000)
-    } else {
-      throw new Error()
+    try {
+      const response = await fetch(
+        `http://localhost:3000/books/${editingBook.value._id}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editingBook.value),
+        },
+      );
+      if (response.ok) {
+        overlayMessage.value = 'Book updated successfully!';
+        overlayIconType.value = 'success';
+        showLoadingOverlay.value = true;
+        fetchBooks();
+        showEditPopup.value = false;
+        editingBook.value = null;
+        setTimeout(() => (showLoadingOverlay.value = false), 2000);
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      toast.error('Failed to update the book.');
     }
-  } catch (error) {
-    toast.error('Failed to delete the book.')
-  }
-}
+  };
 
-// Pagination handlers
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value += 1
-    fetchBooks()
-  }
-}
+  // Function to confirm deletion
+  const confirmDeleteBook = (book: Book) => {
+    selectedBookToDelete.value = book;
+    showDeleteConfirmation.value = true;
+  };
 
-const previousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value -= 1
-    fetchBooks()
-  }
-}
+  // Function to delete a book
+  const deleteBook = async () => {
+    if (!selectedBookToDelete.value) return;
 
-onMounted(() => {
-  fetchBooks()
-})
+    try {
+      const response = await fetch(
+        `http://localhost:3000/books/${selectedBookToDelete.value._id}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      if (response.ok) {
+        overlayMessage.value = 'Book deleted successfully!';
+        overlayIconType.value = 'error';
+        showLoadingOverlay.value = true;
+        fetchBooks();
+        showDeleteConfirmation.value = false;
+        selectedBookToDelete.value = null;
+        setTimeout(() => (showLoadingOverlay.value = false), 2000);
+      } else {
+        throw new Error();
+      }
+    } catch (error) {
+      toast.error('Failed to delete the book.');
+    }
+  };
+
+  // Pagination handlers
+  const nextPage = () => {
+    if (currentPage.value < totalPages.value) {
+      currentPage.value += 1;
+      fetchBooks();
+    }
+  };
+
+  const previousPage = () => {
+    if (currentPage.value > 1) {
+      currentPage.value -= 1;
+      fetchBooks();
+    }
+  };
+
+  onMounted(() => {
+    fetchBooks();
+  });
 </script>
 
 <template>
   <div>
-    <section class="p-4 sm:p-8 w-full sm:w-screen bg-gray-100 flex flex-col items-center">
+    <section
+      class="p-4 sm:p-8 w-full sm:w-screen bg-gray-100 flex flex-col items-center"
+    >
       <!-- Header and Buttons -->
       <header class="text-center mb-6 w-full">
         <h1 class="text-3xl font-bold text-blue-600 mb-2">Manager Dashboard</h1>
@@ -207,7 +209,9 @@ onMounted(() => {
       </header>
 
       <!-- Add Book and Sort Buttons -->
-      <div class="flex flex-col sm:flex-row justify-between w-full mb-4 space-y-4 sm:space-y-0">
+      <div
+        class="flex flex-col sm:flex-row justify-between w-full mb-4 space-y-4 sm:space-y-0"
+      >
         <button
           @click="showAddPopup = true"
           class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -228,7 +232,10 @@ onMounted(() => {
       </div>
 
       <!-- Book List -->
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
+      <div
+        v-else
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full"
+      >
         <div
           v-for="book in books"
           :key="book._id"
@@ -286,19 +293,29 @@ onMounted(() => {
 
       <!-- Pagination Controls -->
       <div class="bg-gray-100 p-4">
-      <div class="flex flex-col md:flex-row justify-center md:space-x-4 space-y-2 md:space-y-0 my-4 md:my-6">
-        <button @click="() => previousPage()" :disabled="currentPage === 1"
-          class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 w-full md:w-auto text-sm md:text-base">
-          Previous
-        </button>
-        <span class="text-center text-sm md:text-base">Page {{ currentPage }} of {{ totalPages }}</span>
-        <button @click="() => nextPage()" :disabled="currentPage === totalPages"
-          class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 w-full md:w-auto text-sm md:text-base">
-          Next
-        </button>
+        <div
+          class="flex flex-col md:flex-row justify-center md:space-x-4 space-y-2 md:space-y-0 my-4 md:my-6"
+        >
+          <button
+            @click="() => previousPage()"
+            :disabled="currentPage === 1"
+            class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 w-full md:w-auto text-sm md:text-base"
+          >
+            Previous
+          </button>
+          <span class="text-center text-sm md:text-base"
+            >Page {{ currentPage }} of {{ totalPages }}</span
+          >
+          <button
+            @click="() => nextPage()"
+            :disabled="currentPage === totalPages"
+            class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 w-full md:w-auto text-sm md:text-base"
+          >
+            Next
+          </button>
+        </div>
       </div>
-    </div>
-      
+
       <!-- Add Book Popup -->
       <div
         v-if="showAddPopup"
@@ -379,7 +396,10 @@ onMounted(() => {
           </label>
           <label class="block mb-2">
             Description:
-            <input v-model="editingBook.description" class="border p-2 w-full" />
+            <input
+              v-model="editingBook.description"
+              class="border p-2 w-full"
+            />
           </label>
           <label class="block mb-2">
             Category:
@@ -411,7 +431,8 @@ onMounted(() => {
           <h3 class="text-lg font-semibold mb-4">Confirm Deletion</h3>
           <p>
             Are you sure you want to delete
-            <strong>{{ selectedBookToDelete?.title }}</strong>?
+            <strong>{{ selectedBookToDelete?.title }}</strong
+            >?
           </p>
           <div class="flex justify-end space-x-2 mt-4">
             <button
