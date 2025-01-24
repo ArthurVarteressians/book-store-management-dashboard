@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { ref, watch, defineEmits } from 'vue';
+  import { ref, watch, defineEmits } from 'vue';
 
-const sortOrder = ref<'desc' | 'asc'>('desc'); // Default sort order
+  const sortOrder = ref<'desc' | 'asc'>('desc'); // Default sort order
 
-// Emit events to parent
-const emits = defineEmits<{
-  (e: 'sort-changed', order: 'desc' | 'asc'): void;
-}>();
+  // Emit events to parent
+  const emits = defineEmits<{
+    (e: 'sort-changed', order: 'desc' | 'asc'): void;
+  }>();
 
-// Watch for changes in sortOrder and emit to parent
-watch(sortOrder, (newOrder) => {
-  emits('sort-changed', newOrder);
-});
-
+  // Watch for changes in sortOrder and emit to parent
+  watch(sortOrder, (newOrder) => {
+    emits('sort-changed', newOrder);
+  });
 </script>
 
 <template>
@@ -27,7 +26,7 @@ watch(sortOrder, (newOrder) => {
 </template>
 
 <style scoped>
-button {
-  cursor: pointer;
-}
+  button {
+    cursor: pointer;
+  }
 </style>
